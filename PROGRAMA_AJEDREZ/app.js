@@ -87,12 +87,37 @@ function uciToSAN(uci) {
 // Inicializar Stockfish (WASM / worker)
 function initEngine() {
   if (engine) return;
-  if (typeof STOCKFISH !== 'function') {
-    console.error('STOCKFISH no está disponible');
-    alert('No se pudo cargar el motor (Stockfish). Revisa tu conexión e intenta recargar.');
-    return;
+  // 1) API global clásica
+  if (typeof STOCKFISH === 'function') {
+    engine = STOCKFISH();
+  } else if (typeof Stockfish === 'function') {
+    engine = Stockfish();
+  } else {
+    // 2) Intentar crear un Worker directo desde URLs conocidas
+    const candidates = [
+      'https://cdn.jsdelivr.net/gh/niklasf/stockfish.js/stockfish.js',
+      'https://cdn.jsdelivr.net/npm/stockfish@16/stockfish.js',
+      'https://unpkg.com/stockfish@16/stockfish.js',
+    ];
+    let created = null;
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        const blob = new Blob([`importScripts('${candidates[i]}');`], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        created = new Worker(url);
+        URL.revokeObjectURL(url);
+        break;
+      } catch (e) {
+        created = null;
+      }
+    }
+    if (!created) {
+      console.error('STOCKFISH no está disponible');
+      alert('No se pudo cargar el motor (Stockfish). Revisa tu conexión e intenta recargar.');
+      return;
+    }
+    engine = created;
   }
-  engine = STOCKFISH();
   engine.onmessage = (line) => {
     const text = (typeof line === 'string') ? line : line.data;
     if (!text) return;
@@ -318,19 +343,10 @@ function init() {
   };
 
   const ensureStockfishLoaded = async () => {
-    if (typeof STOCKFISH === 'function') return;
-    const candidates = [
-      'https://cdn.jsdelivr.net/npm/stockfish@16/stockfish.js',
-      'https://unpkg.com/stockfish@16/stockfish.js',
-    ];
-    let lastErr;
-    for (let i = 0; i < candidates.length; i++) {
-      try {
-        await loadScript(candidates[i]);
-        if (typeof STOCKFISH === 'function') return;
-      } catch (e) { lastErr = e; }
-    }
-    throw (lastErr || new Error('Stockfish no cargó'));
+    // Preferimos crear el Worker en initEngine; aquí solo comprobamos si alguna ruta está accesible
+    if (typeof STOCKFISH === 'function' || typeof Stockfish === 'function') return;
+    // No intentar cargar como <script> para evitar límites de tamaño; initEngine hará importScripts()
+    return;
   };
 
   // Flujo de arranque
