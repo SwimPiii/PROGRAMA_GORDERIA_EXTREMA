@@ -193,6 +193,14 @@ async function init() {
   renderHistory();
   await refreshPersistenceUI();
 
+  // Preparar integración con Google para minimizar bloqueos de popup
+  try {
+    if (window.driveApi && window.driveApi.prepare) {
+      // No bloquea UI ni abre ventana
+      window.driveApi.prepare();
+    }
+  } catch {}
+
   // Intento de conexión silenciosa a Drive si está habilitado y hay Client ID
   if (UI.toggleDrive.checked && window.SORTEO_CONFIG.googleClientId && window.driveApi && window.driveApi.trySilentSignIn) {
     const ok = await window.driveApi.trySilentSignIn();
@@ -280,10 +288,7 @@ async function init() {
         return;
       }
       try {
-        // Esperar a que la API de Google esté lista si aún no lo está
-        if (!(window.driveApi && window.driveApi.isReady && window.driveApi.isReady())) {
-          await new Promise(r => setTimeout(r, 400));
-        }
+        // Disparar login inmediatamente sobre el gesto de click
         await window.driveApi.signIn();
         // Activar automáticamente el uso de Drive al conectar
         UI.toggleDrive.checked = true;

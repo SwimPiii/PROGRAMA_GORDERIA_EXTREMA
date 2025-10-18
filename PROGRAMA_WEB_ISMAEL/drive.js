@@ -11,6 +11,7 @@
     folderId: null,
     lastError: null,
   };
+  let tokenClient = null; // GIS token client (oauth2)
 
   async function waitForGIS(timeoutMs = 5000) {
     const start = Date.now();
@@ -55,30 +56,80 @@
     });
   }
 
-  async function signIn() {
-    if (!cfg.googleClientId) throw new Error('Client ID no configurado');
-    await initClient();
-    await waitForGIS();
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: cfg.googleClientId,
-      scope: cfg.googleScopes,
-      callback: ''
-    });
-    const token = await new Promise((resolve, reject) => {
-      tokenClient.callback = (resp) => {
-        if (resp && resp.access_token) resolve(resp);
-        else {
-          state.lastError = resp || new Error('No se obtuvo access_token');
-          reject(state.lastError);
+  // Prepara gapi y GIS en segundo plano para que al pulsar el botón
+  // podamos llamar requestAccessToken inmediatamente (sin perder el gesto)
+  async function prepare() {
+    try {
+      // Inicializar gapi client (descubrimiento Drive)
+      await initClient();
+    } catch (e) {
+      // Se volverá a intentar si es necesario
+      state.lastError = e;
+    }
+    try {
+      // Esperar a GIS y crear token client si hay Client ID
+      if (cfg.googleClientId) {
+        await waitForGIS();
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: cfg.googleClientId,
+          scope: cfg.googleScopes,
+          callback: '', // se asigna justo antes de cada petición
+          use_fedcm_for_prompt: true
+        });
+      }
+    } catch (e) {
+      state.lastError = e;
+    }
+  }
+
+  // Inicia sesión provocando popup inmediatamente en el gesto de click
+  // Importante: no hacer awaits antes de requestAccessToken para no perder el gesto
+  function signIn() {
+    if (!cfg.googleClientId) return Promise.reject(new Error('Client ID no configurado'));
+    // Si no está preparado aún, intentamos crear tokenClient en caliente.
+    if (!tokenClient && window.google && window.google.accounts && window.google.accounts.oauth2) {
+      try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: cfg.googleClientId,
+          scope: cfg.googleScopes,
+          callback: '',
+          use_fedcm_for_prompt: true
+        });
+      } catch (e) {
+        state.lastError = e;
+      }
+    }
+    if (!tokenClient) {
+      // No podemos abrir popup sin GIS, avisar al usuario.
+      alert('Cargando servicios de Google… espera 1-2 segundos y vuelve a pulsar Conectar.');
+      return Promise.reject(new Error('GIS no listo'));
+    }
+    return new Promise((resolve, reject) => {
+      tokenClient.callback = async (resp) => {
+        try {
+          if (resp && resp.access_token) {
+            // Asegurar gapi listo (esto no abre ventanas)
+            try { await initClient(); } catch {}
+            window.gapi.client.setToken({ access_token: resp.access_token });
+            state.signedIn = true;
+            try { await ensureFolderAndFile(); } catch {}
+            resolve(true);
+          } else {
+            state.lastError = resp || new Error('No se obtuvo access_token');
+            reject(state.lastError);
+          }
+        } catch (e) {
+          state.lastError = e;
+          reject(e);
         }
       };
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      try {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (e) {
+        state.lastError = e;
+        reject(e);
+      }
     });
-    window.gapi.client.setToken({ access_token: token.access_token });
-    state.signedIn = true;
-    // Buscar o crear carpeta/archivo
-    await ensureFolderAndFile();
-    return true;
   }
 
   // Intenta iniciar sesión sin interacción (si ya diste consentimiento antes)
@@ -87,11 +138,15 @@
     try {
       await initClient();
       await waitForGIS();
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: cfg.googleClientId,
-        scope: cfg.googleScopes,
-        callback: ''
-      });
+      // Reutilizar o crear tokenClient (no abre popup con prompt:none)
+      if (!tokenClient) {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: cfg.googleClientId,
+          scope: cfg.googleScopes,
+          callback: '',
+          use_fedcm_for_prompt: true
+        });
+      }
       const ok = await new Promise((resolve) => {
         tokenClient.callback = async (resp) => {
           if (resp && resp.access_token) {
@@ -238,6 +293,7 @@
     isReady: () => !!(state.gapiLoaded && state.clientInitialized && cfg.googleClientId),
     isSignedIn: () => state.signedIn,
     getDebugInfo: () => ({ ready: !!(state.gapiLoaded && state.clientInitialized), signedIn: state.signedIn, lastError: state.lastError }),
+    prepare,
     signIn,
     signOut,
     trySilentSignIn,
