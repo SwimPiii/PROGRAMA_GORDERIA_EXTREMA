@@ -20,6 +20,7 @@ const UI = {
   driveStatus: document.getElementById('drive-status'),
   driveClientId: document.getElementById('drive-client-id'),
   btnSaveClientId: document.getElementById('btn-save-clientid'),
+  btnClearClientId: document.getElementById('btn-clear-clientid'),
   version: document.getElementById('version'),
   historyList: document.getElementById('history-list'),
   btnExportHistory: document.getElementById('btn-export-history'),
@@ -172,10 +173,34 @@ async function init() {
   const preferDrive = !!cfg.googleClientId; // si hay clientId, permitimos toggle
   UI.toggleDrive.checked = preferDrive;
 
+  // Cargar clientId desde localStorage si existe
+  try {
+    const savedId = localStorage.getItem('sorteo_google_client_id');
+    if (savedId && !cfg.googleClientId) {
+      window.SORTEO_CONFIG.googleClientId = savedId;
+    }
+    if (UI.driveClientId) UI.driveClientId.value = window.SORTEO_CONFIG.googleClientId || savedId || '';
+  } catch {}
+
   appState = await loadState(UI.toggleDrive.checked);
   renderOptions();
   renderHistory();
   await refreshPersistenceUI();
+
+  // Intento de conexión silenciosa a Drive si está habilitado y hay Client ID
+  if (UI.toggleDrive.checked && window.SORTEO_CONFIG.googleClientId && window.driveApi && window.driveApi.trySilentSignIn) {
+    const ok = await window.driveApi.trySilentSignIn();
+    if (ok) {
+      await refreshPersistenceUI();
+      // Si hay datos en Drive más recientes, recargar
+      try {
+        const s = await loadState(true);
+        appState = s;
+        renderOptions();
+        renderHistory();
+      } catch {}
+    }
+  }
 
   UI.btnDraw.addEventListener('click', async () => {
     const picked = weightedPick(appState.options);
@@ -269,7 +294,6 @@ async function init() {
 
   if (UI.btnSaveClientId && UI.driveClientId) {
     // Permitir inyectar el Client ID sin editar el archivo
-    UI.driveClientId.value = cfg.googleClientId || '';
     UI.btnSaveClientId.addEventListener('click', async () => {
       const id = (UI.driveClientId.value || '').trim();
       if (!id) {
@@ -277,9 +301,20 @@ async function init() {
         return;
       }
       window.SORTEO_CONFIG.googleClientId = id;
+      try { localStorage.setItem('sorteo_google_client_id', id); } catch {}
       // Refrescar estado de persistencia (el toggle define preferencia, no cambia aquí)
       await refreshPersistenceUI();
-      alert('Client ID guardado en memoria. Recarga la página para persistir en config.js si lo deseas.');
+      alert('Client ID guardado. No tendrás que pegarlo otra vez en este dispositivo.');
+    });
+  }
+
+  if (UI.btnClearClientId) {
+    UI.btnClearClientId.addEventListener('click', async () => {
+      try { localStorage.removeItem('sorteo_google_client_id'); } catch {}
+      window.SORTEO_CONFIG.googleClientId = '';
+      if (UI.driveClientId) UI.driveClientId.value = '';
+      await refreshPersistenceUI();
+      alert('Client ID borrado de este dispositivo.');
     });
   }
 

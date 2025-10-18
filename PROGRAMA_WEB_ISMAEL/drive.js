@@ -65,6 +65,43 @@
     return true;
   }
 
+  // Intenta iniciar sesión sin interacción (si ya diste consentimiento antes)
+  async function trySilentSignIn() {
+    if (!cfg.googleClientId) return false;
+    try {
+      await initClient();
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cfg.googleClientId,
+        scope: cfg.googleScopes,
+        callback: ''
+      });
+      const ok = await new Promise((resolve) => {
+        tokenClient.callback = async (resp) => {
+          if (resp && resp.access_token) {
+            try {
+              window.gapi.client.setToken({ access_token: resp.access_token });
+              state.signedIn = true;
+              await ensureFolderAndFile();
+              resolve(true);
+            } catch {
+              resolve(false);
+            }
+          } else {
+            resolve(false);
+          }
+        };
+        try {
+          tokenClient.requestAccessToken({ prompt: '' }); // 'none'/'': sin UI
+        } catch (e) {
+          resolve(false);
+        }
+      });
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+
   async function signOut() {
     try {
       const token = window.gapi.client.getToken();
@@ -156,6 +193,7 @@
     isSignedIn: () => state.signedIn,
     signIn,
     signOut,
+    trySilentSignIn,
     loadFromDrive,
     saveToDrive,
   };
