@@ -6,10 +6,11 @@
     <title>Entrenamiento medio juego (Ajedrez)</title>
     <meta name="description" content="Entrenamiento de medio juego con posiciones aleatorias y verificación contra Stockfish (top-3)." />
     <link rel="stylesheet" href="/PROGRAMA_GORDERIA_EXTREMA/PROGRAMA_AJEDREZ/styles.css" />
-    <link rel="stylesheet" href="/PROGRAMA_GORDERIA_EXTREMA/PROGRAMA_AJEDREZ/chessboard-1.0.0.min.css" />
-    <script src="/PROGRAMA_GORDERIA_EXTREMA/PROGRAMA_AJEDREZ/chessboard-1.0.0.min.js"></script>
-  <!-- Reglas de ajedrez (UMD local) -->
-  <script src="/PROGRAMA_GORDERIA_EXTREMA/PROGRAMA_AJEDREZ/chess.min.js"></script>
+    <!-- Librerías desde jsDelivr (UMD/clásicas) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <!-- Reglas de ajedrez (UMD 0.13.4, API clásica con turn(), load_pgn, etc.) -->
+    <script src="https://cdn.jsdelivr.net/npm/chess.js@0.13.4/chess.min.js"></script>
     <!-- Motor de ajedrez -->
   <script src="https://cdn.jsdelivr.net/npm/stockfish@16/stockfish.js"></script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' x='8' font-size='48'%3E%26%239829%3B%3C/text%3E%3C/svg%3E" />
