@@ -205,6 +205,10 @@ function onSnapEnd() {
 }
 
 function buildBoard() {
+  if (typeof Chessboard !== 'function') {
+    alert('No se pudo cargar el tablero (ChessboardJS). Revisa tu conexión.');
+    return;
+  }
   const cfg = {
     draggable: true,
     position: 'start',
