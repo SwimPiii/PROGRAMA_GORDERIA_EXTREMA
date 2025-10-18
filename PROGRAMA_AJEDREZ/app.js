@@ -87,6 +87,11 @@ function uciToSAN(uci) {
 // Inicializar Stockfish (WASM / worker)
 function initEngine() {
   if (engine) return;
+  if (typeof STOCKFISH !== 'function') {
+    console.error('STOCKFISH no está disponible');
+    alert('No se pudo cargar el motor (Stockfish). Revisa tu conexión e intenta recargar.');
+    return;
+  }
   engine = STOCKFISH();
   engine.onmessage = (line) => {
     const text = (typeof line === 'string') ? line : line.data;
@@ -251,42 +256,113 @@ async function handleRandom() {
 }
 
 function init() {
-  // Asegurar que la librería Chess está disponible (fallback si falla el primer CDN)
-  const ensureChessLoaded = () => new Promise((resolve, reject) => {
-    if (typeof Chess === 'function') return resolve();
-    // Intentar cargar desde jsDelivr como respaldo
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js';
-    script.onload = () => {
-      if (typeof Chess === 'function') resolve();
-      else reject(new Error('Chess no disponible tras fallback'));
-    };
-    script.onerror = () => reject(new Error('No se pudo cargar chess.js'));
-    document.head.appendChild(script);
+  // Utilidades de carga con fallback múltiple
+  const loadScript = (src) => new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error('Error cargando ' + src));
+    document.head.appendChild(s);
+  });
+  const loadCSS = (href) => new Promise((resolve, reject) => {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = href;
+    l.onload = () => resolve(true);
+    l.onerror = () => reject(new Error('Error cargando CSS ' + href));
+    document.head.appendChild(l);
   });
 
-  ensureChessLoaded().then(() => {
-    game = new Chess();
-    buildBoard();
-    updateTurn();
-    initEngine();
-    UI.hits.textContent = '0';
-    UI.fails.textContent = '0';
-    UI.analysisStatus.textContent = '-';
+  const ensureChessboardLoaded = async () => {
+    if (typeof Chessboard === 'function') return;
+    const cssCandidates = [
+      'https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css',
+      'https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css',
+      'https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css',
+    ];
+    const jsCandidates = [
+      'https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js',
+      'https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js',
+    ];
+    // Cargar CSS y JS con el primer CDN que responda
+    let lastErr;
+    for (let i = 0; i < cssCandidates.length; i++) {
+      try { await loadCSS(cssCandidates[i]); break; } catch (e) { lastErr = e; }
+    }
+    for (let i = 0; i < jsCandidates.length; i++) {
+      try {
+        await loadScript(jsCandidates[i]);
+        if (typeof Chessboard === 'function') return;
+      } catch (e) { lastErr = e; }
+    }
+    if (typeof Chessboard !== 'function') throw (lastErr || new Error('Chessboard no cargó'));
+  };
 
-    UI.pgnFile.addEventListener('change', async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      const text = await file.text();
-      fullPGNText = text;
-      alert('PGN cargado. Ya puedes pulsar "Cargar al azar".');
-    });
+  const ensureChessLoaded = async () => {
+    if (typeof Chess === 'function') return;
+    const candidates = [
+      'https://unpkg.com/chess.js@0.10.3/chess.min.js',
+      'https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',
+    ];
+    let lastErr;
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        await loadScript(candidates[i]);
+        if (typeof Chess === 'function') return;
+      } catch (e) { lastErr = e; }
+    }
+    throw (lastErr || new Error('chess.js no cargó'));
+  };
 
-    UI.btnRandom.addEventListener('click', handleRandom);
-  }).catch((err) => {
-    console.error(err);
-    alert('No se pudo cargar la librería de ajedrez (chess.js). Revisa tu conexión e intenta recargar.');
-  });
+  const ensureStockfishLoaded = async () => {
+    if (typeof STOCKFISH === 'function') return;
+    const candidates = [
+      'https://cdn.jsdelivr.net/npm/stockfish@16/stockfish.js',
+      'https://unpkg.com/stockfish@16/stockfish.js',
+    ];
+    let lastErr;
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        await loadScript(candidates[i]);
+        if (typeof STOCKFISH === 'function') return;
+      } catch (e) { lastErr = e; }
+    }
+    throw (lastErr || new Error('Stockfish no cargó'));
+  };
+
+  // Flujo de arranque
+  (async () => {
+    try {
+      await ensureChessboardLoaded();
+      await ensureChessLoaded();
+      await ensureStockfishLoaded();
+      game = new Chess();
+      buildBoard();
+      updateTurn();
+      initEngine();
+      UI.hits.textContent = '0';
+      UI.fails.textContent = '0';
+      UI.analysisStatus.textContent = '-';
+
+      UI.pgnFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        fullPGNText = text;
+        alert('PGN cargado. Ya puedes pulsar "Cargar al azar".');
+      });
+
+      UI.btnRandom.addEventListener('click', handleRandom);
+    } catch (err) {
+      console.error(err);
+      if (typeof Chessboard !== 'function') alert('No se pudo cargar el tablero (ChessboardJS). Revisa tu conexión.');
+      else if (typeof Chess !== 'function') alert('No se pudo cargar la librería de ajedrez (chess.js). Revisa tu conexión e intenta recargar.');
+      else if (typeof STOCKFISH !== 'function') alert('No se pudo cargar el motor (Stockfish). Revisa tu conexión e intenta recargar.');
+    }
+  })();
 }
 
 document.addEventListener('DOMContentLoaded', init);
