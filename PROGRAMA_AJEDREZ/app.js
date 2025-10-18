@@ -7,7 +7,7 @@
 // - Al mover, comparar con top-3 y llevar contadores de aciertos/fallos
 
 let board = null;
-let game = new Chess();
+let game = null;
 let engine = null; // Stockfish
 let engineReady = false;
 let engineBest = []; // [{uci:'e2e4', san:'e4', score, depth}]
@@ -251,22 +251,42 @@ async function handleRandom() {
 }
 
 function init() {
-  buildBoard();
-  updateTurn();
-  initEngine();
-  UI.hits.textContent = '0';
-  UI.fails.textContent = '0';
-  UI.analysisStatus.textContent = '-';
-
-  UI.pgnFile.addEventListener('change', async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const text = await file.text();
-    fullPGNText = text;
-    alert('PGN cargado. Ya puedes pulsar "Cargar al azar".');
+  // Asegurar que la librería Chess está disponible (fallback si falla el primer CDN)
+  const ensureChessLoaded = () => new Promise((resolve, reject) => {
+    if (typeof Chess === 'function') return resolve();
+    // Intentar cargar desde jsDelivr como respaldo
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js';
+    script.onload = () => {
+      if (typeof Chess === 'function') resolve();
+      else reject(new Error('Chess no disponible tras fallback'));
+    };
+    script.onerror = () => reject(new Error('No se pudo cargar chess.js'));
+    document.head.appendChild(script);
   });
 
-  UI.btnRandom.addEventListener('click', handleRandom);
+  ensureChessLoaded().then(() => {
+    game = new Chess();
+    buildBoard();
+    updateTurn();
+    initEngine();
+    UI.hits.textContent = '0';
+    UI.fails.textContent = '0';
+    UI.analysisStatus.textContent = '-';
+
+    UI.pgnFile.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      fullPGNText = text;
+      alert('PGN cargado. Ya puedes pulsar "Cargar al azar".');
+    });
+
+    UI.btnRandom.addEventListener('click', handleRandom);
+  }).catch((err) => {
+    console.error(err);
+    alert('No se pudo cargar la librería de ajedrez (chess.js). Revisa tu conexión e intenta recargar.');
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
