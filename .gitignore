@@ -1,0 +1,37 @@
+# Node/JS
+node_modules/
+dist/
+build/
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Android/Gradle
+*.apk
+*.aab
+*.dex
+*.class
+*.iml
+.gradle/
+local.properties
+*/build/
+gradle-*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Secrets y credenciales (NO subirlos)
+client_secrets.json
+service_account.json
+pydrive2_credentials.json
+PROGRAMA_RAQUEL_MOVIL/app/src/main/assets/service_account.json
+
+# Binarios grandes de pruebas
+prueba_proteger/**

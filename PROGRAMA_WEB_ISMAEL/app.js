@@ -18,6 +18,7 @@ const UI = {
   driveSignin: document.getElementById('btn-drive-signin'),
   driveSignout: document.getElementById('btn-drive-signout'),
   driveStatus: document.getElementById('drive-status'),
+  saveStatus: document.getElementById('save-status'),
   driveClientId: document.getElementById('drive-client-id'),
   btnSaveClientId: document.getElementById('btn-save-clientid'),
   btnClearClientId: document.getElementById('btn-clear-clientid'),
@@ -166,6 +167,11 @@ async function refreshPersistenceUI() {
   const useDrive = UI.toggleDrive.checked && !!cfg.googleClientId;
   const signed = window.driveApi && window.driveApi.isSignedIn && window.driveApi.isSignedIn();
   UI.driveStatus.textContent = useDrive ? (signed ? 'Conectado' : 'Desconectado') : 'LocalStorage';
+  if (UI.saveStatus) {
+    if (useDrive && signed) UI.saveStatus.textContent = 'Destino: Google Drive';
+    else if (useDrive && !signed) UI.saveStatus.textContent = 'Destino: Local (no conectado a Drive)';
+    else UI.saveStatus.textContent = 'Destino: LocalStorage';
+  }
 }
 
 async function init() {
@@ -203,14 +209,20 @@ async function init() {
   }
 
   UI.btnDraw.addEventListener('click', async () => {
-    const picked = weightedPick(appState.options);
-    if (!picked) return setResult('No hay pesos válidos', 'danger');
-    setResult(`Ha salido: ${picked.name} 🎉`, 'success');
-    applyRulesAfterPick(appState, picked.key);
-    renderOptions();
-    renderHistory();
-    await saveState(appState, UI.toggleDrive.checked);
-    await refreshPersistenceUI();
+    // Evitar bloqueo si algo del login está en curso o falló
+    try {
+      const picked = weightedPick(appState.options);
+      if (!picked) return setResult('No hay pesos válidos', 'danger');
+      setResult(`Ha salido: ${picked.name} 🎉`, 'success');
+      applyRulesAfterPick(appState, picked.key);
+      renderOptions();
+      renderHistory();
+      await saveState(appState, UI.toggleDrive.checked && !!window.SORTEO_CONFIG.googleClientId);
+      await refreshPersistenceUI();
+    } catch (e) {
+      console.error('Error en sorteo:', e);
+      setResult('Error en sorteo. Reintenta.', 'danger');
+    }
   });
 
   UI.btnSanchesco.addEventListener('click', () => {
@@ -233,7 +245,7 @@ async function init() {
     UI.sanchescoPanel.hidden = true;
     renderOptions();
     renderHistory();
-    await saveState(appState, UI.toggleDrive.checked);
+    await saveState(appState, UI.toggleDrive.checked && !!window.SORTEO_CONFIG.googleClientId);
     await refreshPersistenceUI();
   });
 
@@ -247,14 +259,14 @@ async function init() {
     }
     setResult('Pesos actualizados.', 'success');
     renderOptions();
-    await saveState(appState, UI.toggleDrive.checked);
+    await saveState(appState, UI.toggleDrive.checked && !!window.SORTEO_CONFIG.googleClientId);
   });
 
   UI.btnResetDefaults.addEventListener('click', async () => {
     appState.options = JSON.parse(JSON.stringify(defaultOptions));
     setResult('Valores iniciales restaurados.', 'warning');
     renderOptions();
-    await saveState(appState, UI.toggleDrive.checked);
+    await saveState(appState, UI.toggleDrive.checked && !!window.SORTEO_CONFIG.googleClientId);
   });
 
   UI.toggleDrive.addEventListener('change', async () => {
@@ -345,7 +357,7 @@ async function init() {
     UI.btnClearHistory.addEventListener('click', async () => {
       if (!confirm('¿Seguro que deseas borrar el histórico? Esta acción no se puede deshacer.')) return;
       appState.history = [];
-      await saveState(appState, UI.toggleDrive.checked);
+      await saveState(appState, UI.toggleDrive.checked && !!window.SORTEO_CONFIG.googleClientId);
       renderHistory();
     });
   }
@@ -356,6 +368,7 @@ document.addEventListener('DOMContentLoaded', init);
 // Registrar service worker (PWA)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    const swPath = '/PROGRAMA_GORDERIA_EXTREMA/PROGRAMA_WEB_ISMAEL/sw.js';
+    navigator.serviceWorker.register(swPath).catch(() => {});
   });
 }

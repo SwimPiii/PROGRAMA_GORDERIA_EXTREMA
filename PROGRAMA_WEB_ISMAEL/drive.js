@@ -109,7 +109,7 @@
           }
         };
         try {
-          tokenClient.requestAccessToken({ prompt: '' }); // 'none'/'': sin UI
+          tokenClient.requestAccessToken({ prompt: 'none' }); // sin UI si es posible
         } catch (e) {
           state.lastError = e;
           resolve(false);
