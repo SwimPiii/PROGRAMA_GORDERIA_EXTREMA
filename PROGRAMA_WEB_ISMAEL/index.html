@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sorteación gordura extrema</title>
+    <meta name="description" content="App para elegir comida basura de los viernes con pesos dinámicos y toque sanchesco." />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="title">🍔 Sorteación gordura extrema</div>
+      <div class="subtitle">Viernes de placer, algoritmo de poder</div>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <div class="card-header">
+          <h2>Próximo sorteo</h2>
+          <div class="actions">
+            <button id="btn-draw" class="btn primary">Ejecutar sorteo</button>
+            <button id="btn-sanchesco" class="btn">Sorteo Sanchesco</button>
+          </div>
+        </div>
+        <div id="result" class="result" aria-live="polite"></div>
+        <div id="options-list" class="options-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Persistencia de datos</h2>
+        </div>
+        <div class="persistence">
+          <div class="persistence-row">
+            <label class="switch">
+              <input type="checkbox" id="toggle-drive" />
+              <span class="slider"></span>
+            </label>
+            <div>
+              <div class="persist-title">Usar Google Drive</div>
+              <div class="persist-desc">Guarda/recupera tus pesos en tu Drive. Si no está configurado, se usará almacenamiento local del navegador.</div>
+            </div>
+          </div>
+          <div class="drive-controls">
+            <button id="btn-drive-signin" class="btn small">Conectar</button>
+            <button id="btn-drive-signout" class="btn small">Desconectar</button>
+            <span id="drive-status" class="status">Desconectado</span>
+          </div>
+          <div class="drive-controls">
+            <input id="drive-client-id" type="text" placeholder="Pega aquí tu Google OAuth Client ID" style="min-width:320px;background:#0f1117;border:1px solid #2a3148;border-radius:8px;color:var(--text);padding:6px" />
+            <button id="btn-save-clientid" class="btn small">Guardar Client ID</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Histórico</h2>
+          <div class="actions">
+            <button id="btn-export-history" class="btn">Exportar JSON</button>
+            <button id="btn-clear-history" class="btn danger">Borrar histórico</button>
+          </div>
+        </div>
+        <div id="history-list" class="history-list"></div>
+      </section>
+
+      <section class="card" id="sanchesco-panel" hidden>
+        <div class="card-header">
+          <h2>Sorteo Sanchesco (manual)</h2>
+        </div>
+        <div class="sanchesco">
+          <div id="manual-choices" class="manual-choices"></div>
+          <div class="sanchesco-actions">
+            <button id="btn-apply-sanchesco" class="btn success">Aplicar elección</button>
+            <button id="btn-cancel-sanchesco" class="btn">Cancelar</button>
+          </div>
+          <hr />
+          <h3>Ajuste fino de ponderaciones</h3>
+          <div id="weights-editor" class="weights-editor"></div>
+          <div class="editor-actions">
+            <button id="btn-save-weights" class="btn success">Guardar cambios</button>
+            <button id="btn-reset-defaults" class="btn danger">Restablecer valores iniciales</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="app-footer">
+        <span>Hecho con hambre y cariño</span>
+        <span id="version"></span>
+      </footer>
+    </main>
+
+    <!-- Config opcional del usuario (OAuth Client ID, nombre del archivo, etc.) -->
+    <script src="config.js" defer></script>
+    <!-- Google API client (Drive) y GIS (OAuth) -->
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Integración Drive (clásico), expone window.driveApi -->
+    <script src="drive.js" defer></script>
+    <!-- App principal (ESM) -->
+    <script type="module" src="app.js"></script>
+  </body>
+  </html>
