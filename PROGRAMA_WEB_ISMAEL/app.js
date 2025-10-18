@@ -170,7 +170,7 @@ async function refreshPersistenceUI() {
 
 async function init() {
   UI.version.textContent = cfg.version || '';
-  const preferDrive = !!cfg.googleClientId; // si hay clientId, permitimos toggle
+  const preferDrive = !!cfg.googleClientId;
   UI.toggleDrive.checked = preferDrive;
 
   // Cargar clientId desde localStorage si existe
@@ -182,7 +182,7 @@ async function init() {
     if (UI.driveClientId) UI.driveClientId.value = window.SORTEO_CONFIG.googleClientId || savedId || '';
   } catch {}
 
-  appState = await loadState(UI.toggleDrive.checked);
+  appState = await loadState(UI.toggleDrive.checked && !!cfg.googleClientId);
   renderOptions();
   renderHistory();
   await refreshPersistenceUI();

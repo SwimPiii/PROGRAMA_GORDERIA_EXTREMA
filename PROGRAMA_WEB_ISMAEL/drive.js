@@ -170,6 +170,11 @@
     return res;
   }
 
+  function isNotFoundError(err) {
+    const code = err && (err.status || (err.result && err.result.error && err.result.error.code));
+    return code === 404;
+  }
+
   async function downloadContent(fileId) {
     const res = await gapi.client.drive.files.get({ fileId, alt: 'media' });
     return res.result; // JSON
@@ -178,14 +183,35 @@
   async function loadFromDrive() {
     if (!state.signedIn) throw new Error('No autenticado');
     if (!state.fileId) await ensureFolderAndFile();
-    const data = await downloadContent(state.fileId);
-    return data && Object.keys(data).length ? data : null;
+    try {
+      const data = await downloadContent(state.fileId);
+      return data && Object.keys(data).length ? data : null;
+    } catch (e) {
+      if (isNotFoundError(e)) {
+        // El archivo puede haberse borrado: recrear y devolver null (estado por defecto usará local o se guardará luego)
+        try {
+          state.fileId = await getOrCreateFile(cfg.driveFileName, state.folderId || await getOrCreateFolder(cfg.driveFolderName));
+        } catch {}
+        return null;
+      }
+      throw e;
+    }
   }
 
   async function saveToDrive(stateObj) {
     if (!state.signedIn) throw new Error('No autenticado');
     if (!state.fileId) await ensureFolderAndFile();
-    await uploadContent(state.fileId, JSON.stringify(stateObj));
+    try {
+      await uploadContent(state.fileId, JSON.stringify(stateObj));
+    } catch (e) {
+      if (isNotFoundError(e)) {
+        // Re-crear y reintentar una vez
+        state.fileId = await getOrCreateFile(cfg.driveFileName, state.folderId || await getOrCreateFolder(cfg.driveFolderName));
+        await uploadContent(state.fileId, JSON.stringify(stateObj));
+      } else {
+        throw e;
+      }
+    }
   }
 
   window.driveApi = {
