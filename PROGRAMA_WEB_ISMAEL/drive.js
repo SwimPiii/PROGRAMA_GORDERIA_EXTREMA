@@ -54,7 +54,7 @@
     const token = await new Promise((resolve, reject) => {
       tokenClient.callback = (resp) => {
         if (resp && resp.access_token) resolve(resp);
-        else reject(resp);
+        else reject(resp || new Error('No se obtuvo access_token'));
       };
       tokenClient.requestAccessToken({ prompt: 'consent' });
     });

@@ -268,8 +268,15 @@ async function init() {
         return;
       }
       try {
+        // Esperar a que la API de Google esté lista si aún no lo está
+        if (!(window.driveApi && window.driveApi.isReady && window.driveApi.isReady())) {
+          await new Promise(r => setTimeout(r, 400));
+        }
         await window.driveApi.signIn();
+        // Activar automáticamente el uso de Drive al conectar
+        UI.toggleDrive.checked = true;
         await refreshPersistenceUI();
+        setResult('Conectado a Drive ✓', 'success');
         // Recargar desde Drive si procede
         if (UI.toggleDrive.checked) {
           const s = await loadState(true);
