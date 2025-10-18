@@ -9,7 +9,19 @@
     signedIn: false,
     fileId: null,
     folderId: null,
+    lastError: null,
   };
+
+  async function waitForGIS(timeoutMs = 5000) {
+    const start = Date.now();
+    return new Promise((resolve, reject) => {
+      (function loop(){
+        if (window.google && window.google.accounts && window.google.accounts.oauth2) return resolve(true);
+        if (Date.now() - start > timeoutMs) return reject(new Error('GIS no cargó'));
+        setTimeout(loop, 100);
+      })();
+    });
+  }
 
   async function loadGapi() {
     if (state.gapiLoaded) return;
@@ -46,6 +58,7 @@
   async function signIn() {
     if (!cfg.googleClientId) throw new Error('Client ID no configurado');
     await initClient();
+    await waitForGIS();
     const tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: cfg.googleClientId,
       scope: cfg.googleScopes,
@@ -54,7 +67,10 @@
     const token = await new Promise((resolve, reject) => {
       tokenClient.callback = (resp) => {
         if (resp && resp.access_token) resolve(resp);
-        else reject(resp || new Error('No se obtuvo access_token'));
+        else {
+          state.lastError = resp || new Error('No se obtuvo access_token');
+          reject(state.lastError);
+        }
       };
       tokenClient.requestAccessToken({ prompt: 'consent' });
     });
@@ -70,6 +86,7 @@
     if (!cfg.googleClientId) return false;
     try {
       await initClient();
+      await waitForGIS();
       const tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: cfg.googleClientId,
         scope: cfg.googleScopes,
@@ -87,17 +104,20 @@
               resolve(false);
             }
           } else {
+            state.lastError = resp || new Error('Silent login sin token');
             resolve(false);
           }
         };
         try {
           tokenClient.requestAccessToken({ prompt: '' }); // 'none'/'': sin UI
         } catch (e) {
+          state.lastError = e;
           resolve(false);
         }
       });
       return ok;
-    } catch {
+    } catch (e) {
+      state.lastError = e;
       return false;
     }
   }
@@ -217,6 +237,7 @@
   window.driveApi = {
     isReady: () => !!(state.gapiLoaded && state.clientInitialized && cfg.googleClientId),
     isSignedIn: () => state.signedIn,
+    getDebugInfo: () => ({ ready: !!(state.gapiLoaded && state.clientInitialized), signedIn: state.signedIn, lastError: state.lastError }),
     signIn,
     signOut,
     trySilentSignIn,

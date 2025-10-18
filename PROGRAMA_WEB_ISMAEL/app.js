@@ -285,8 +285,10 @@ async function init() {
           renderHistory();
         }
       } catch (e) {
-        alert('No se pudo conectar a Drive. Revisa permisos.');
-        console.error(e);
+        const info = window.driveApi && window.driveApi.getDebugInfo ? window.driveApi.getDebugInfo() : null;
+        const msg = info ? `No se pudo conectar a Drive. Revisa permisos.\nready=${info.ready} signedIn=${info.signedIn} error=${info.lastError && (info.lastError.error || info.lastError.message || info.lastError)}` : 'No se pudo conectar a Drive. Revisa permisos.';
+        alert(msg);
+        console.error('Drive connect error:', e, info);
       }
     });
   }
