@@ -12,6 +12,23 @@
     lastError: null,
   };
   let tokenClient = null; // GIS token client (oauth2)
+  let pendingAuthReject = null;
+
+  function createTokenClient() {
+    return google.accounts.oauth2.initTokenClient({
+      client_id: cfg.googleClientId,
+      scope: cfg.googleScopes,
+      callback: '',
+      error_callback: (err) => {
+        state.lastError = err;
+        if (pendingAuthReject) {
+          const reject = pendingAuthReject;
+          pendingAuthReject = null;
+          reject(err);
+        }
+      }
+    });
+  }
 
   async function waitForGIS(timeoutMs = 5000) {
     const start = Date.now();
@@ -70,12 +87,7 @@
       // Esperar a GIS y crear token client si hay Client ID
       if (cfg.googleClientId) {
         await waitForGIS();
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: cfg.googleClientId,
-          scope: cfg.googleScopes,
-          callback: '', // se asigna justo antes de cada petición
-          use_fedcm_for_prompt: true
-        });
+        tokenClient = createTokenClient();
       }
     } catch (e) {
       state.lastError = e;
@@ -89,12 +101,7 @@
     // Si no está preparado aún, intentamos crear tokenClient en caliente.
     if (!tokenClient && window.google && window.google.accounts && window.google.accounts.oauth2) {
       try {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: cfg.googleClientId,
-          scope: cfg.googleScopes,
-          callback: '',
-          use_fedcm_for_prompt: true
-        });
+        tokenClient = createTokenClient();
       } catch (e) {
         state.lastError = e;
       }
@@ -105,8 +112,10 @@
       return Promise.reject(new Error('GIS no listo'));
     }
     return new Promise((resolve, reject) => {
+      pendingAuthReject = reject;
       tokenClient.callback = async (resp) => {
         try {
+          pendingAuthReject = null;
           if (resp && resp.access_token) {
             // Asegurar gapi listo (esto no abre ventanas)
             try { await initClient(); } catch {}
@@ -140,12 +149,7 @@
       await waitForGIS();
       // Reutilizar o crear tokenClient (no abre popup con prompt:none)
       if (!tokenClient) {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: cfg.googleClientId,
-          scope: cfg.googleScopes,
-          callback: '',
-          use_fedcm_for_prompt: true
-        });
+        tokenClient = createTokenClient();
       }
       const ok = await new Promise((resolve) => {
         tokenClient.callback = async (resp) => {
