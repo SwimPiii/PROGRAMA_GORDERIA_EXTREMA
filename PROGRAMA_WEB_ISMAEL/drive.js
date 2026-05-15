@@ -83,15 +83,6 @@
       // Se volverá a intentar si es necesario
       state.lastError = e;
     }
-    try {
-      // Esperar a GIS y crear token client si hay Client ID
-      if (cfg.googleClientId) {
-        await waitForGIS();
-        tokenClient = createTokenClient();
-      }
-    } catch (e) {
-      state.lastError = e;
-    }
   }
 
   // Inicia sesión provocando popup inmediatamente en el gesto de click
