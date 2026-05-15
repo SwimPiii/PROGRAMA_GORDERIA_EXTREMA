@@ -201,21 +201,6 @@ async function init() {
     }
   } catch {}
 
-  // Intento de conexión silenciosa a Drive si está habilitado y hay Client ID
-  if (UI.toggleDrive.checked && window.SORTEO_CONFIG.googleClientId && window.driveApi && window.driveApi.trySilentSignIn) {
-    const ok = await window.driveApi.trySilentSignIn();
-    if (ok) {
-      await refreshPersistenceUI();
-      // Si hay datos en Drive más recientes, recargar
-      try {
-        const s = await loadState(true);
-        appState = s;
-        renderOptions();
-        renderHistory();
-      } catch {}
-    }
-  }
-
   UI.btnDraw.addEventListener('click', async () => {
     // Evitar bloqueo si algo del login está en curso o falló
     try {
