@@ -56,10 +56,11 @@ Nota: Si usas Google Drive, tendrás que añadir este dominio como JavaScript Au
 
 1) Crea un proyecto en Google Cloud Console y habilita “Google Drive API”.
 2) Crea credenciales OAuth Client ID (tipo “Web Application”).
-3) En “Authorized JavaScript origins” añade el origen desde el que servirás la web:
+3) No guardes el Client Secret en este repositorio. Esta app no lo necesita porque usa autenticación desde navegador con GIS y solo consume el Client ID.
+4) En “Authorized JavaScript origins” añade solo los orígenes exactos desde los que servirás la web:
   - Local: `http://localhost:5500`
-  - GitHub Pages: `https://tu-usuario.github.io`
-4) Copia el Client ID en `config.js`:
+  - GitHub Pages: `https://swimpiii.github.io`
+5) Copia el Client ID en `config.js`:
 
 ```js
 window.SORTEO_CONFIG = {
@@ -71,7 +72,7 @@ window.SORTEO_CONFIG = {
 };
 ```
 
-5) Recarga la página, activa “Usar Google Drive” y pulsa “Conectar”.
+6) Recarga la página, activa “Usar Google Drive” y pulsa “Conectar”.
 
 El archivo `sorteo_pesos.json` se guardará en una carpeta llamada `SorteacionGordura` en tu Drive.
 
@@ -86,5 +87,7 @@ El archivo `sorteo_pesos.json` se guardará en una carpeta llamada `SorteacionGo
 
 - En modo LocalStorage, todo se queda en tu navegador.
 - En modo Drive, la app solicita el scope mínimo `drive.file` (solo archivos creados por la app).
+- El `googleClientId` puede estar en un repo público; el `Client Secret` no.
+- Si alguna vez subiste un `Client Secret`, rótalo o elimina ese cliente OAuth en Google Cloud y crea otro nuevo.
 
 ¡A disfrutar del viernes! 🍕🌯🍗
