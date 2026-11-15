@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tareas">
+    <meta name="theme-color" content="#3b82f6">
+    <title>Tareas de casa</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <h1 class="app-title" id="loginTitle">🌺 Tareas de Maria 🌺</h1>
+            <div class="stitch-container">
+                <img src="stich_hola2.png" alt="Stitch" class="stitch-image">
+            </div>
+            
+            <div class="login-form">
+                <label for="profileSelect">Perfil</label>
+                <select id="profileSelect" class="profile-select" autocomplete="off">
+                    <option value="maria">Maria</option>
+                    <option value="guapito">Guapito</option>
+                    <option value="sargento">Sargento</option>
+                </select>
+                <label for="passwordInput">Contraseña</label>
+                <input type="password" id="passwordInput" placeholder="Contraseña" class="password-input" autocomplete="current-password">
+                <button id="loginButton" class="btn-primary">Entrar ✨</button>
+                <p id="loginError" class="error-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla Principal - Calendario -->
+    <div id="mainScreen" class="screen">
+        <!-- Stitch flotante decorativo -->
+        <div class="floating-stitch">
+            <img src="stich_hola2.png" alt="Stitch" class="stitch-float">
+        </div>
+        
+        <div class="header">
+            <h2 id="welcomeMessage">Bienvenida, Maria! 🌺</h2>
+            <button id="upcomingBtn" class="btn-week" style="background:#22c55e;">Próximas tareas</button>
+            <button id="logoutButton" class="btn-logout">Salir</button>
+        </div>
+
+        <!-- Hucha -->
+        <div class="piggy-bank-container">
+            <div class="piggy-bank">
+                <div class="piggy-icon">
+                    <img src="hucha_stich.png" alt="Hucha Stitch" class="hucha-stitch-img">
+                </div>
+                <div class="piggy-info">
+                    <div class="piggy-label">Hucha de Maria</div>
+                    <div class="piggy-amount" id="piggyBankAmount">0.00€</div>
+                </div>
+                <button id="editPiggyBank" class="btn-edit-piggy" style="display: none;">✏️ Editar Hucha</button>
+            </div>
+        </div>
+
+        <!-- Recompensas semanales de Maria -->
+        <div class="points-container">
+            <div class="points-header">
+                <span>Progreso Semanal</span>
+                <span id="pointsDisplay">0€ / 10€</span>
+            </div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div class="bonus-info">
+                <span id="bonusText">🌺 Completa todas las tareas y obtendrás euritos extras!</span>
+            </div>
+        </div>
+
+        <!-- Controles de Semana -->
+        <div class="week-controls">
+            <button id="prevWeek" class="btn-week">◀ Semana Anterior</button>
+            <h3 id="weekDisplay">Semana del 9 - 15 Dic 2025</h3>
+            <button id="nextWeek" class="btn-week">Semana Siguiente ▶</button>
+        </div>
+
+        <!-- Botones de administración (solo Sargento) -->
+        <div id="adminControls" class="admin-controls" style="display: none;">
+            <button id="fillWeekBtn" class="btn-admin btn-fill">📋 Rellenar Semana Automáticamente</button>
+            <button id="addBonusBtn" class="btn-admin">➕ Añadir Bonificación</button>
+            <button id="removeBonusBtn" class="btn-admin">➖ Quitar Bonificación</button>
+            <button id="clearWeekBtn" class="btn-admin btn-danger">🗑️ Limpiar Semana</button>
+        </div>
+
+        <!-- Calendario Semanal -->
+        <div id="calendar" class="calendar">
+            <!-- Los días se generarán dinámicamente -->
+        </div>
+
+        <!-- Modal para Añadir/Editar Tarea -->
+        <div id="taskModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="modalTitle">Nueva Tarea</h3>
+                <form id="taskForm">
+                    <input type="text" id="taskTitle" placeholder="Título de la tarea" required>
+                    <textarea id="taskDescription" placeholder="Descripción (opcional)"></textarea>
+                    <select id="taskDay">
+                        <option value="0">Lunes</option>
+                        <option value="1">Martes</option>
+                        <option value="2">Miércoles</option>
+                        <option value="3">Jueves</option>
+                        <option value="4">Viernes</option>
+                        <option value="5">Sábado</option>
+                        <option value="6">Domingo</option>
+                    </select>
+                    <fieldset id="assigneesField" class="assignees-field" style="display: none;">
+                        <legend>Asignar tarea a</legend>
+                        <label><input type="checkbox" name="taskAssignee" value="maria"> Maria</label>
+                        <label><input type="checkbox" name="taskAssignee" value="guapito"> Guapito</label>
+                        <label><input type="checkbox" name="taskAssignee" value="sargento"> Sargento</label>
+                        <small>Selecciona una o varias personas. Para una tarea personal de Sargento, selecciona solo Sargento.</small>
+                    </fieldset>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn-primary">Guardar</button>
+                        <button type="button" id="cancelTaskBtn" class="btn-secondary">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Próximas Tareas -->
+        <div id="upcomingModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeUpcoming">&times;</span>
+                <h3 id="upcomingTitle">Próximas tareas</h3>
+                <div id="upcomingList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="profile-passwords.js"></script>
+    <script src="drive-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

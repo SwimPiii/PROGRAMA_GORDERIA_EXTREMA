@@ -1,0 +1,1 @@
+window.PROFILE_PASSWORDS = {};
